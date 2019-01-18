@@ -6,6 +6,12 @@ import { fromRoot } from '../../utils';
 import { getData } from '../path';
 
 module.exports = () => Joi.object({
+  bdsa: Joi.object({
+    eventList: Joi.string().default(Joi.ref('$eventList')),
+    eventAdd: Joi.string().default(Joi.ref('$eventAdd')),
+    eventPut: Joi.string().default(Joi.ref('$eventPut'))
+  }).default(),
+
   pkg: Joi.object({
     version: Joi.string().default(Joi.ref('$version')),
     branch: Joi.string().default(Joi.ref('$branch')),

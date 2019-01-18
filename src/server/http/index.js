@@ -11,6 +11,7 @@ import shortUrlLookupProvider from './short_url_lookup';
 import setupConnectionMixin from './setup_connection';
 import registerHapiPluginsMixin from './register_hapi_plugins';
 import xsrfMixin from './xsrf';
+import request2 from 'superagent';
 
 module.exports = async function (kbnServer, server, config) {
   server = kbnServer.server = new Hapi.Server();
@@ -165,6 +166,48 @@ module.exports = async function (kbnServer, server, config) {
   server.exposeStaticDir('/ui/favicons/{path*}', resolve(__dirname, '../../ui/public/assets/favicons'));
 
   kbnServer.mixin(versionCheckMixin);
+
+  //add by matthew
+  // get event list
+  // secondary development
+  function response(err, data, reply) {
+    if (err) {
+      reply(err);
+    } else {
+      reply(data.body);
+    }
+  }
+
+
+  server.route({
+    method: 'GET',
+    path: '/event/list',
+    handler: async function (request, reply) {
+    request2.get(config.get('bdsa.eventList'))
+      .send(request.payload)
+      .set('Cookie', 'token=' + request.state.token)
+      .end(function (err, data) {
+        console.log("get event lists with restUri : " + config.get("bdsa.eventList"));
+        //console.log(data);
+        response(err, data, reply);
+      });
+  }
+  });
+
+  server.route({
+    method: 'PUT',
+    path: '/event/{eventId}',
+    handler: async function (request, reply) {
+    request2.put(config.get('bdsa.eventPut'))
+      .send(request.payload)
+      .set('Cookie', 'token=' + request.state.token)
+      .end(function (err, data) {
+        console.log("get event lists with restUri : " + config.get("bdsa.eventPut"));
+        //console.log(data);
+        response(err, data, reply);
+      });
+  }
+  });
 
   return kbnServer.mixin(xsrfMixin);
 };
