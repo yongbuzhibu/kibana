@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import bootstrap from 'bootstrap';
 import angular from 'angular';
 import moment from 'moment';
 import { getSort } from 'ui/doc_table/lib/get_sort';
@@ -98,7 +99,7 @@ app.directive('discoverApp', function () {
 });
 
 function discoverController($scope, config, courier, $route, $window, Notifier,
-  AppState, timefilter, Promise, Private, kbnUrl) {
+  AppState, timefilter, Promise, Private, kbnUrl, $http) {
 
   const Vis = Private(VisProvider);
   const docTitle = Private(DocTitleProvider);
@@ -603,6 +604,114 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
     }
     return loaded;
   }
+
+  // add by matthew2019-01-07
+
+  // secondary development
+  // add to analyticPool and event activities
+  $scope.selectedData = null;
+  $scope.description = null;
+  $scope.author = null;
+
+  $scope.getChosen = function () {
+    let rowsChosen = [];
+    _.forEach($scope.rows, function (row) {
+      if (row.hasOwnProperty('chosen') && row.chosen === true) {
+        let json = row;
+        console.log(json)
+        rowsChosen.push(json);
+      }
+    });
+    $scope.selectedData = rowsChosen;
+    return rowsChosen;
+  }
+
+  function modalShow(selector) {
+    $(selector).modal('show');
+    $('.modal-backdrop').appendTo('#soc-modals');
+  };
+
+  $scope.showAddToEvent = function () {
+    $scope.selectedData = $scope.getChosen();
+    if ($scope.selectedData.length > 0) {
+      $scope.getAllEvent();
+      $scope.addToEventForm.$setPristine();
+      //console.log("discover.js "+ $scope.selectedData);
+      $('select[name="eventChose"]').removeClass('ng-touched').addClass('ng-untouched');
+      modalShow('#modal');
+    } else {
+      notify.error('未选择任何数据');
+    }
+  }
+
+  $scope.getAllEvent = function () {
+    $http.get('/event/list')
+      .success(function (data) {
+        console.log(data)
+        $scope.events = data.data;
+        $scope.addToEventForm.$setPristine();
+      });
+  };
+
+  function getEventById(id){
+    for(var i = 0; i< $scope.events.length; i++){
+      if($scope.events[i].id == id){
+        return $scope.events[i];
+      }
+    }
+    return null;
+  }
+
+
+  $scope.setTouched = function (name) {
+    if ($('select[name="' + name + '"]').hasClass('ng-untouched')) {
+      $('select[name="' + name + '"]').removeClass('ng-untouched').addClass('ng-touched');
+    }
+  }
+
+  var getSentData = function () {
+    var id = $('#eventChose option:selected').val().replace(new RegExp("string:"), "");
+    if(id) {
+      let strTemp = [];
+      let selectDataTmp = $scope.selectedData = $scope.getChosen();
+      for(var i = 0;i<$scope.selectedData.length;i++){
+        let str = "_id:" +selectDataTmp[i]._id + ",_type:"+selectDataTmp[i]._type + ",_index:" + selectDataTmp._index;
+        strTemp.push(str);
+      }
+
+      var event = getEventById(id);
+      event.author = $scope.author;
+      event.originalInfo =strTemp.join('|');
+      event.description = $scope.description;
+      return event;
+    }else return null;
+  }
+
+
+  $scope.sendToEvent = function () {
+    var senData = getSentData();
+    //delete senData['$$hashKey'];
+    if (!senData) {
+      notify.error('请选择事件');
+    } else {
+      console.log("update in discover request" + JSON.stringify(senData));
+      $http.put('/event/' + senData.id, JSON.stringify(senData))
+        .success(function (data) {
+          if (data.hasOwnProperty('success') && data.success === true) {
+            notify.info('添加成功');
+            $('#modal').modal('hide');
+            //$scope.setAllChosenFalse();
+          } else if (data.error && data.error === 401) {
+            notify.error('未登录或登陆状态已过期,请重新登陆平台');
+          } else {
+            notify.error('添加失败');
+          }
+        })
+        .error(function () {
+          notify.error('添加失败');
+        });
+    }
+    }
 
   init();
 }

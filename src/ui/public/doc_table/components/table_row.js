@@ -53,6 +53,14 @@ module.directive('kbnTableRow', function ($compile, $httpParamSerializer, kbnUrl
       // when we compile the toggle button in the summary, we use this $scope
       let $toggleScope;
 
+      // add by matthew
+      $scope.row.chosen = false;
+      $scope.clickChoose = function () {
+        $scope.row.chosen = !$scope.row.chosen;
+        // window.event.stopPropagation();
+      };
+      // matthew end
+
       // toggle display of the rows details, a full list of the fields from each row
       $scope.toggleRow = function () {
         const $detailsTr = $el.next();

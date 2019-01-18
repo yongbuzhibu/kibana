@@ -87,6 +87,12 @@
         </disc-field-chooser>
       </div>
 
+      <div>
+        <div class="btn-event-group" style="float:right;margin-top:10px;margin-right:20px;">
+          <a class="btn btn-info btn-large btn-soc" ng-click="showAddToEvent()">添加到事件</a>
+        </div>
+      </div>
+
       <div class="discover-wrapper col-md-10">
         <div class="discover-content">
           <discover-no-results ng-show="resultState === 'none'"></discover-no-results>
@@ -168,5 +174,742 @@
         </div>
       </div>
     </div>
+
+    <script>
+      /*
+       * arrive.js
+       * v2.3.0
+       * https://github.com/uzairfarooq/arrive
+       * MIT licensed
+       *
+       * Copyright (c) 2014-2015 Uzair Farooq
+       */
+
+      var Arrive = (function (window, $, undefined) {
+
+        "use strict";
+
+        if (!window.MutationObserver || typeof HTMLElement === 'undefined') {
+          return; //for unsupported browsers
+        }
+
+        var arriveUniqueId = 0;
+
+        var utils = (function () {
+          var matches = HTMLElement.prototype.matches || HTMLElement.prototype.webkitMatchesSelector || HTMLElement.prototype.mozMatchesSelector
+            || HTMLElement.prototype.msMatchesSelector;
+
+          return {
+            matchesSelector: function (elem, selector) {
+              return elem instanceof HTMLElement && matches.call(elem, selector);
+            },
+            // to enable function overloading - By John Resig (MIT Licensed)
+            addMethod: function (object, name, fn) {
+              var old = object[name];
+              object[name] = function () {
+                if (fn.length == arguments.length)
+                  return fn.apply(this, arguments);
+                else if (typeof old == 'function')
+                  return old.apply(this, arguments);
+              };
+            },
+            callCallbacks: function (callbacksToBeCalled) {
+              for (var i = 0, cb; cb = callbacksToBeCalled[i]; i++) {
+                cb.callback.call(cb.elem);
+              }
+            },
+            // traverse through all descendants of a node to check if event should be fired for any descendant
+            checkChildNodesRecursively: function (nodes, registrationData, matchFunc, callbacksToBeCalled) {
+              // check each new node if it matches the selector
+              for (var i = 0, node; node = nodes[i]; i++) {
+                if (matchFunc(node, registrationData, callbacksToBeCalled)) {
+                  callbacksToBeCalled.push({callback: registrationData.callback, elem: node});
+                }
+
+                if (node.childNodes.length > 0) {
+                  utils.checkChildNodesRecursively(node.childNodes, registrationData, matchFunc, callbacksToBeCalled);
+                }
+              }
+            },
+            mergeArrays: function (firstArr, secondArr) {
+              // Overwrites default options with user-defined options.
+              var options = {},
+                attrName;
+              for (attrName in firstArr) {
+                options[attrName] = firstArr[attrName];
+              }
+              for (attrName in secondArr) {
+                options[attrName] = secondArr[attrName];
+              }
+              return options;
+            },
+            toElementsArray: function (elements) {
+              // check if object is an array (or array like object)
+              // Note: window object has .length property but it's not array of elements so don't consider it an array
+              if (typeof elements !== "undefined" && (typeof elements.length !== "number" || elements === window)) {
+                elements = [elements];
+              }
+              return elements;
+            }
+          };
+        })();
+
+
+        // Class to maintain state of all registered events of a single type
+        var EventsBucket = (function () {
+          var EventsBucket = function () {
+            // holds all the events
+
+            this._eventsBucket = [];
+            // function to be called while adding an event, the function should do the event initialization/registration
+            this._beforeAdding = null;
+            // function to be called while removing an event, the function should do the event destruction
+            this._beforeRemoving = null;
+          };
+
+          EventsBucket.prototype.addEvent = function (target, selector, options, callback) {
+            var newEvent = {
+              target: target,
+              selector: selector,
+              options: options,
+              callback: callback,
+              firedElems: []
+            };
+
+            if (this._beforeAdding) {
+              this._beforeAdding(newEvent);
+            }
+
+            this._eventsBucket.push(newEvent);
+            return newEvent;
+          };
+
+          EventsBucket.prototype.removeEvent = function (compareFunction) {
+            for (var i = this._eventsBucket.length - 1, registeredEvent; registeredEvent = this._eventsBucket[i]; i--) {
+              if (compareFunction(registeredEvent)) {
+                if (this._beforeRemoving) {
+                  this._beforeRemoving(registeredEvent);
+                }
+                this._eventsBucket.splice(i, 1);
+              }
+            }
+          };
+
+          EventsBucket.prototype.beforeAdding = function (beforeAdding) {
+            this._beforeAdding = beforeAdding;
+          };
+
+          EventsBucket.prototype.beforeRemoving = function (beforeRemoving) {
+            this._beforeRemoving = beforeRemoving;
+          };
+
+          return EventsBucket;
+        })();
+
+
+        /**
+         * @constructor
+         * General class for binding/unbinding arrive and leave events
+         */
+        var MutationEvents = function (getObserverConfig, onMutation) {
+          var eventsBucket = new EventsBucket(),
+            me = this;
+
+          var defaultOptions = {
+            fireOnAttributesModification: false
+          };
+
+          // actual event registration before adding it to bucket
+          eventsBucket.beforeAdding(function (registrationData) {
+            var
+              target = registrationData.target,
+              selector = registrationData.selector,
+              callback = registrationData.callback,
+              observer;
+
+            // mutation observer does not work on window or document
+            if (target === window.document || target === window)
+              target = document.getElementsByTagName("html")[0];
+
+            // Create an observer instance
+            observer = new MutationObserver(function (e) {
+              onMutation.call(this, e, registrationData);
+            });
+
+            var config = getObserverConfig(registrationData.options);
+
+            observer.observe(target, config);
+
+            registrationData.observer = observer;
+            registrationData.me = me;
+          });
+
+          // cleanup/unregister before removing an event
+          eventsBucket.beforeRemoving(function (eventData) {
+            eventData.observer.disconnect();
+          });
+
+          this.bindEvent = function (selector, options, callback) {
+            options = utils.mergeArrays(defaultOptions, options);
+
+            var elements = utils.toElementsArray(this);
+
+            for (var i = 0; i < elements.length; i++) {
+              eventsBucket.addEvent(elements[i], selector, options, callback);
+            }
+          };
+
+          this.unbindEvent = function () {
+            var elements = utils.toElementsArray(this);
+            eventsBucket.removeEvent(function (eventObj) {
+              for (var i = 0; i < elements.length; i++) {
+                if (this === undefined || eventObj.target === elements[i]) {
+                  return true;
+                }
+              }
+              return false;
+            });
+          };
+
+          this.unbindEventWithSelectorOrCallback = function (selector) {
+            var elements = utils.toElementsArray(this),
+              callback = selector,
+              compareFunction;
+
+            if (typeof selector === "function") {
+              compareFunction = function (eventObj) {
+                for (var i = 0; i < elements.length; i++) {
+                  if ((this === undefined || eventObj.target === elements[i]) && eventObj.callback === callback) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+            }
+            else {
+              compareFunction = function (eventObj) {
+                for (var i = 0; i < elements.length; i++) {
+                  if ((this === undefined || eventObj.target === elements[i]) && eventObj.selector === selector) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+            }
+            eventsBucket.removeEvent(compareFunction);
+          };
+
+          this.unbindEventWithSelectorAndCallback = function (selector, callback) {
+            var elements = utils.toElementsArray(this);
+            eventsBucket.removeEvent(function (eventObj) {
+              for (var i = 0; i < elements.length; i++) {
+                if ((this === undefined || eventObj.target === elements[i]) && eventObj.selector === selector && eventObj.callback === callback) {
+                  return true;
+                }
+              }
+              return false;
+            });
+          };
+
+          return this;
+        };
+
+
+        /**
+         * @constructor
+         * Processes 'arrive' events
+         */
+        var ArriveEvents = function () {
+          var mutationEvents,
+            me = this;
+
+          // Default options for 'arrive' event
+          var arriveDefaultOptions = {
+            fireOnAttributesModification: false,
+            onceOnly: false,
+            existing: false
+          };
+
+          function getArriveObserverConfig(options) {
+            var config = {
+              attributes: false,
+              childList: true,
+              subtree: true
+            };
+
+            if (options.fireOnAttributesModification) {
+              config.attributes = true;
+            }
+
+            return config;
+          }
+
+          function onArriveMutation(mutations, registrationData) {
+            mutations.forEach(function (mutation) {
+              var newNodes = mutation.addedNodes,
+                targetNode = mutation.target,
+                callbacksToBeCalled = [];
+
+              // If new nodes are added
+              if (newNodes !== null && newNodes.length > 0) {
+                utils.checkChildNodesRecursively(newNodes, registrationData, nodeMatchFunc, callbacksToBeCalled);
+              }
+              else if (mutation.type === "attributes") {
+                if (nodeMatchFunc(targetNode, registrationData, callbacksToBeCalled)) {
+                  callbacksToBeCalled.push({callback: registrationData.callback, elem: node});
+                }
+              }
+
+              utils.callCallbacks(callbacksToBeCalled);
+            });
+          }
+
+          function nodeMatchFunc(node, registrationData, callbacksToBeCalled) {
+            // check a single node to see if it matches the selector
+            if (utils.matchesSelector(node, registrationData.selector)) {
+              if (node._id === undefined) {
+                node._id = arriveUniqueId++;
+              }
+              // make sure the arrive event is not already fired for the element
+              if (registrationData.firedElems.indexOf(node._id) == -1) {
+
+                if (registrationData.options.onceOnly) {
+                  if (registrationData.firedElems.length === 0) {
+                    // On first callback, unbind event.
+                    registrationData.me.unbindEventWithSelectorAndCallback.call(
+                      registrationData.target, registrationData.selector, registrationData.callback);
+                  } else {
+                    // Ignore multiple mutations which may have been queued before the event was unbound.
+                    return;
+                  }
+                }
+
+                registrationData.firedElems.push(node._id);
+                callbacksToBeCalled.push({callback: registrationData.callback, elem: node});
+              }
+            }
+          }
+
+          arriveEvents = new MutationEvents(getArriveObserverConfig, onArriveMutation);
+
+          var mutationBindEvent = arriveEvents.bindEvent;
+
+          // override bindEvent function
+          arriveEvents.bindEvent = function (selector, options, callback) {
+
+            if (typeof callback === "undefined") {
+              callback = options;
+              options = arriveDefaultOptions;
+            } else {
+              options = utils.mergeArrays(arriveDefaultOptions, options);
+            }
+
+            var elements = utils.toElementsArray(this);
+
+            if (options.existing) {
+              var existing = [];
+
+              for (var i = 0; i < elements.length; i++) {
+                var nodes = elements[i].querySelectorAll(selector);
+                for (var j = 0; j < nodes.length; j++) {
+                  existing.push({callback: callback, elem: nodes[j]});
+                }
+              }
+
+              // no need to bind event if the callback has to be fired only once and we have already found the element
+              if (options.onceOnly && existing.length) {
+                return callback.call(existing[0].elem);
+              }
+
+              utils.callCallbacks(existing)
+            }
+
+            mutationBindEvent.call(this, selector, options, callback);
+          };
+
+          return arriveEvents;
+        };
+
+
+        /**
+         * @constructor
+         * Processes 'leave' events
+         */
+        var LeaveEvents = function () {
+          var mutationEvents,
+            me = this;
+
+          // Default options for 'leave' event
+          var leaveDefaultOptions = {};
+
+          function getLeaveObserverConfig(options) {
+            var config = {
+              childList: true,
+              subtree: true
+            };
+
+            return config;
+          }
+
+          function onLeaveMutation(mutations, registrationData) {
+            mutations.forEach(function (mutation) {
+              var removedNodes = mutation.removedNodes,
+                targetNode = mutation.target,
+                callbacksToBeCalled = [];
+
+              if (removedNodes !== null && removedNodes.length > 0) {
+                utils.checkChildNodesRecursively(removedNodes, registrationData, nodeMatchFunc, callbacksToBeCalled);
+              }
+
+              utils.callCallbacks(callbacksToBeCalled);
+            });
+          }
+
+          function nodeMatchFunc(node, registrationData) {
+            return utils.matchesSelector(node, registrationData.selector);
+          }
+
+          leaveEvents = new MutationEvents(getLeaveObserverConfig, onLeaveMutation);
+
+          var mutationBindEvent = leaveEvents.bindEvent;
+
+          // override bindEvent function
+          leaveEvents.bindEvent = function (selector, options, callback) {
+
+            if (typeof callback === "undefined") {
+              callback = options;
+              options = leaveDefaultOptions;
+            } else {
+              options = utils.mergeArrays(leaveDefaultOptions, options);
+            }
+
+            mutationBindEvent.call(this, selector, options, callback);
+          };
+
+          return leaveEvents;
+        };
+
+
+        var arriveEvents = new ArriveEvents(),
+          leaveEvents = new LeaveEvents();
+
+        function exposeUnbindApi(eventObj, exposeTo, funcName) {
+          // expose unbind function with function overriding
+          utils.addMethod(exposeTo, funcName, eventObj.unbindEvent);
+          utils.addMethod(exposeTo, funcName, eventObj.unbindEventWithSelectorOrCallback);
+          utils.addMethod(exposeTo, funcName, eventObj.unbindEventWithSelectorAndCallback);
+        }
+
+        /*** expose APIs ***/
+        function exposeApi(exposeTo) {
+          exposeTo.arrive = arriveEvents.bindEvent;
+          exposeUnbindApi(arriveEvents, exposeTo, "unbindArrive");
+
+          exposeTo.leave = leaveEvents.bindEvent;
+          exposeUnbindApi(leaveEvents, exposeTo, "unbindLeave");
+        }
+
+        if ($) {
+          exposeApi($.fn);
+        }
+        exposeApi(HTMLElement.prototype);
+        exposeApi(NodeList.prototype);
+        exposeApi(HTMLCollection.prototype);
+        exposeApi(HTMLDocument.prototype);
+        exposeApi(Window.prototype);
+
+        var Arrive = {};
+        // expose functions to unbind all arrive/leave events
+        exposeUnbindApi(arriveEvents, Arrive, "unbindAllArrive");
+        exposeUnbindApi(leaveEvents, Arrive, "unbindAllLeave");
+
+        return Arrive;
+
+      })(this, typeof jQuery === 'undefined' ? null : jQuery, undefined);
+
+    </script>
+
+    <script>
+      console.log("get in with matthew csv plugin");
+      var readyStateCheckInterval = setInterval(function () {
+        if (document.readyState === "complete") {
+          clearInterval(readyStateCheckInterval);
+
+          var url = window.location.href;
+          if (url.indexOf("app/kibana") >= 0 || url.indexOf("#/discover") >= 0 || url.indexOf(":5601") >= 0) {
+            console.log("get in with matthew");
+            var options = {
+              fireOnAttributesModification: true,  // Defaults to false. Setting it to true would make arrive event fire on existing elements which start to satisfy selector after some modification in DOM attributes (an arrive event won't fire twice for a single element even if the option is true). If false, it'd only fire for newly created elements.
+              onceOnly: false,                     // Defaults to false. Setting it to true would ensure that registered callbacks fire only once. No need to unbind the event if the attribute is set to true, it'll automatically unbind after firing once.
+              existing: true                       // Defaults to false. Setting it to true would ensure that the registered callback is fired for the elements that already exists in the DOM and match the selector. If options.onceOnly is set, the callback is only called once with the first element matching the selector.
+            };
+
+            document.arrive(".kuiLocalNavRow--secondary", options, function () {
+              var alreadyExists = document.getElementById("elastic-csv-exporter");
+              if (!alreadyExists)
+                injectCSVExportButton();
+            });
+
+          } else {
+            //We are in some other page. Just exit.
+            return;
+          }
+        }
+      }, 10);
+
+      function setAttributes(el, attrs) {
+        for (var key in attrs) {
+          el.setAttribute(key, attrs[key]);
+        }
+      }
+
+      function parseTable() {
+        var csv = "";
+        var tbls = document.getElementsByTagName("table");
+        for (var i = 0; i < tbls.length; i++) {
+          var tbl = tbls.item(i);
+          var h = tbl.innerHTML + "";
+
+          //Replace comma with colon
+          h = h.replace(/,/g, ";");
+
+          //Remove multiple-whitespaces with one
+          h = h.replace(/\s+/g, ' ');
+
+          //Convert all tag word characters to lower case
+          h = h.replace(/<\/*\w+/g, function (s) {
+            return s.toLowerCase();
+          });
+
+          //special cases
+          h = h.replace(/<tr><\/tr>/g, "");
+
+          //Convert the table tags to commas and white spaces
+          h = h.replace(/<\/tr>/g, "\n");
+          h = h.replace(/<\/td>/g, ",");
+          h = h.replace(/<\/th>/g, ",");
+          h = h.replace(/( )?<.+?>( )?/g, "");
+
+          h = h.replace(/,\n/g, "\n");
+          h = h.replace(/\n,/g, "\n");
+
+          h = h.replace(/^\s+/g, "");
+          h = h.replace(/^,/g, '');
+          csv += h;
+        }
+        return csv;
+      }
+
+      function parseAndCopyToCSV() {
+        var csv = parseTable();
+
+        var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+        var downloadLink = document.createElement("a");
+        downloadLink.href = uri;
+        downloadLink.download = "export.csv";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+//        chrome.runtime.sendMessage({"msg": "store-csv", data: csv}, function(response) {
+//          console.log("CSV Export:", response.status);
+//        });
+      }
+
+      function createElement(type, attributes, innerHTML) {
+        var elem = document.createElement(type);
+
+        if (attributes)
+          setAttributes(elem, attributes);
+
+        if (innerHTML)
+          elem.innerHTML = innerHTML;
+
+        return elem;
+      }
+
+      function createCSVButton() {
+        var csvInnerHTML = '<button title="Export to CSV" aria-haspopup="true" aria-expanded="false" aria-label="Export CSV" class="kuiLocalMenuItem"> CSV </button>';
+        var csvElemAttributes = {
+          "tooltip": "Export CSV",
+          "tooltip-placement": "bottom",
+          "tooltip-popup-delay": "400",
+          "tooltip-append-to-body": "1",
+          "text": "Export CSV",
+          "placement": "bottom",
+          "append-to-body": "1",
+          "class": "ng-scope",
+          "id": "elastic-csv-exporter"
+        };
+        var csvButton = createElement('span', csvElemAttributes, csvInnerHTML);
+        csvButton.onclick = function () {
+          injectMessageSlider();
+        };
+        return csvButton;
+      }
+
+
+      function createMessageSlider() {
+        var wrapperDiv = createElement('div', {
+          "style": "padding:10px 5px; background-color:#656a76; width:100% !important;",
+          "id": "csv-message-wrapper"
+        });
+        var messageBox = createElement('div', {
+          "style": "float:right; margin-top:10px; line-height:2.5em;",
+          "id": "csv-message-box"
+        });
+        wrapperDiv.appendChild(messageBox);
+
+        var successText = "CSV Exporter: This will export only the visible query results.";
+        var failureText = "Oops, CSV export failed.";
+        messageBox.appendChild(createElement('span', null, successText));
+
+
+        var copyToCSVHTML = '<button title="Save to CSVFile" aria-expanded="true"  aria-label="Save to CSVFile" style="border: 1px solid #fff;margin-left: 10px;"><p style="margin: 0;font-size: 12px;font-weight:100;">Save to CSVFile</p></button>';
+        var copyToCSV = createElement('span', {"title": "Save to CSVFile"}, copyToCSVHTML);
+        copyToCSV.onclick = function () {
+          parseAndCopyToCSV();
+        };
+        messageBox.appendChild(copyToCSV);
+
+
+        var CloseHTML = '<button aria-expanded="true" aria-label="Close export slider"><p style="margin: 0;font-size: 12px;font-weight:100;">X</p></button>';
+        var close = createElement('span', {"title": "Close export slider"}, CloseHTML);
+        close.onclick = function () {
+          closeMessageSlider();
+        };
+        messageBox.appendChild(close);
+
+        return wrapperDiv;
+      }
+
+      function closeMessageSlider() {
+        var nav = getMessageSliderElement();
+        var wrapperDiv = document.getElementById("csv-message-wrapper");
+
+        if (nav && wrapperDiv)
+          nav.removeChild(wrapperDiv);
+      }
+
+      function injectMessageSlider() {
+        closeMessageSlider();
+        var div = createMessageSlider();
+        var nav = getMessageSliderElement();
+        if (nav) {
+          nav.appendChild(div);
+        }
+      }
+
+      function getMessageSliderElement() {
+        // var nav = document.getElementsByTagName("navbar")[0];
+        var nav = document.getElementsByClassName("kuiLocalNav")[0];
+        if (!nav) {
+          nav = document.getElementsByClassName("localNav")[0];
+        }
+        return nav;
+      }
+
+      function injectCSVExportButton() {
+        var navbar = document.getElementsByTagName("navbar")[0];
+        var buttonGroup;
+        if (navbar) {
+          buttonGroup = navbar.getElementsByClassName("button-group")[0];
+        } else if (buttonGroup) {
+          buttonGroup = document.getElementsByClassName("localBreadcrumb")[0];
+        } else {
+          buttonGroup = document.getElementsByClassName("kuiLocalMenu")[0];
+        }
+
+        if (buttonGroup) {
+          var span = createCSVButton();
+          buttonGroup.appendChild(span);
+        }
+      }
+
+    </script>
   </div>
+
+  <div id="soc-modals" style="z-index:1069">
+    <div id="modal" class="modal fade row">
+      <div class="modal-dialog modal-md" style="margin:80px auto">
+        <div class="modal-content" style="width: 900px">
+          <form name="addToEventForm">
+            <div class="modal-header">
+              <h4 style="padding-left:18px">告警/日志关联到事件</h4>
+            </div>
+
+            <div class="form-group modal-body row col-md-12">
+              <div class="col-md-12">
+                <span class="col-md-3" style="float: left">选择事件<span style="color:red float: left;">*</span></span>
+
+                <div class="col-md-9">
+                  <select
+                    name="eventChose"
+                    id="eventChose"
+                    ng-model="eventChose"
+                    ng-options="event.id as event.eventName for event in events"
+                    class="form-control col-md-10"
+                    required
+                    ng-click="setTouched('eventChose')"
+                    >
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <span class="col-md-3">告警分析员</span>
+
+                <div class="col-md-9">
+                  <input name="author" type="text" class="form-control" ng-model="author">
+                </div>
+              </div>
+              <div class="col-md-12">
+                <span class="col-md-3">事件描述</span>
+
+                <div class="col-md-9">
+                  <input name="description" type="text" class="form-control" ng-model="description">
+                </div>
+              </div>
+              <div class="col-md-12">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              <div class="col-md-12">
+                <span class="col-md-3">告警/日志概要信息</span>
+
+                <div class="col-md-9">
+                  <table class="table col-md-12 sp-grid">
+                    <thead>
+                    <th>源IP</th>
+                    <th>源端口</th>
+                    <th>目的IP</th>
+                    <th>目的端口</th>
+                    <th>告警数据</th>
+                    </thead>
+
+                    <tr ng-repeat="x in selectedData">
+                      <!--<td>{{$index+1}}</td> &lt;!&ndash; 获取元素的下标值 &ndash;&gt;-->
+                      <!-- ng-if类似ms-if进行布尔值判断显示 -->
+
+                      <td data-title="源IP" ng-if="x._index"> 127.127.253.211</td>
+                      <td data-title="源端口" ng-if="x._type"> 10803</td>
+                      <td data-title="目的IP" ng-if="x._id"> 127.127.93.191</td>
+                      <td data-title="目的端口" ng-if="x._id"> 36553</td>
+                      <td data-title="测试字段eventName" ng-if="x._source.eventName">{{ x._source.eventName }}</td>
+
+                      <!--<td data-title="源IP" ng-if="x._source.src_ip"> {{ x._source.src_ip }}</td>-->
+                      <!--<td data-title="源端口" ng-if="x._source.src_port"> {{ x._source.src_port }}</td>-->
+                      <!--<td data-title="目的IP" ng-if="x._source.dst_ip"> {{ x._source.dst_ip }}</td>-->
+                      <!--<td data-title="目的端口" ng-if="x._source.dst_port"> {{ x._source.dst_port }}</td>-->
+                      <!--<td data-title="告警数据" ng-if="x._source.alarm_data">{{ x._source.alarm_data }}</td>-->
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <a class="btn btn-primary" data-dismiss="modal">取消</a>
+              <a class="btn btn-success" ng-click="sendToEvent()" ng-disabled="addToEventForm.$invalid">添加</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </discover-app>
