@@ -17,7 +17,7 @@ module.directive('kbnTableHeader', function (shortDotsFilter) {
       onMoveColumn: '=?',
     },
     template: headerHtml,
-    controller: function ($scope) {
+    controller: function ($scope, $timeout) {
       const isSortableColumn = function isSortableColumn(columnName) {
         return (
           !!$scope.indexPattern
@@ -96,6 +96,17 @@ module.directive('kbnTableHeader', function (shortDotsFilter) {
 
         $scope.onChangeSortOrder(columnName, newDirection);
       };
+
+      // add by matthew
+      $scope.head_chosen = false;
+      $scope.clickAllChoose = function () {
+        $scope.head_chosen = !$scope.head_chosen;
+        $timeout(function(){
+            $('.matthewCheckBox').click();
+        },0,false);
+      };
+      // matthew end
+
     }
   };
 });

@@ -1,5 +1,7 @@
 <tr>
-  <th width="1%"></th>
+  <th><i id="clickAllSelect" ng-click="clickAllChoose()" ng-class="{ 'fa fa-check-square-o': head_chosen, 'fa fa-square-o': !head_chosen }"
+         style="font-size: 16px"></i>
+  </th>
   <th ng-if="indexPattern.timeFieldName" data-test-subj="docTableHeaderField">
     <span>Time <i ng-class="headerClass(indexPattern.timeFieldName)" ng-click="cycleSortOrder(indexPattern.timeFieldName)" tooltip="Sort by time"></i></span>
   </th>
