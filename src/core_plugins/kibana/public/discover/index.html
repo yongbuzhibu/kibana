@@ -868,11 +868,12 @@
                   <input name="description" type="text" class="form-control" ng-model="description">
                 </div>
               </div>
-              <div class="col-md-12">&nbsp;&nbsp;&nbsp;&nbsp;</div>
               <div class="col-md-12">
-                <span class="col-md-3">告警/日志概要信息</span>
-
-                <div class="col-md-9">
+                <span class="col-md-3">告警/日志概要信息 : </span>
+                <div class="col-md-9">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+              </div>
+              <div class="col-md-12">
+                <div class="col-md-12">
                   <table class="table col-md-12 sp-grid">
                     <thead>
                     <th>源IP</th>
@@ -881,7 +882,6 @@
                     <th>目的端口</th>
                     <th>告警数据</th>
                     </thead>
-
                     <tr ng-repeat="x in selectedData">
                       <!--<td>{{$index+1}}</td> &lt;!&ndash; 获取元素的下标值 &ndash;&gt;-->
                       <!-- ng-if类似ms-if进行布尔值判断显示 -->
