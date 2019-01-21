@@ -672,16 +672,18 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   var getSentData = function () {
     var id = $('#eventChose option:selected').val().replace(new RegExp("string:"), "");
     if(id) {
-      let strTemp = [];
+      let jsonArr = new Array();
       let selectDataTmp = $scope.selectedData = $scope.getChosen();
       for(var i = 0;i<$scope.selectedData.length;i++){
-        let str = "_id:" +selectDataTmp[i]._id + ",_type:"+selectDataTmp[i]._type + ",_index:" + selectDataTmp._index;
-        strTemp.push(str);
+        let jsonTmp = new Object;
+        jsonTmp._id = selectDataTmp[i]._id;
+        jsonTmp._type = selectDataTmp[i]._type;
+        jsonTmp._index = selectDataTmp[i]._index;
+        jsonArr.push(jsonTmp);
       }
-
       var event = getEventById(id);
       event.author = $scope.author;
-      event.originalInfo =strTemp.join('|');
+      event.originalInfo =  JSON.stringify(jsonArr);
       event.description = $scope.description;
       return event;
     }else return null;
