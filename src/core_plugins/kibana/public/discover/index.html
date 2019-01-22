@@ -849,25 +849,47 @@
                     ng-options="event.id as event.eventName for event in events"
                     class="form-control col-md-10"
                     required
-                    ng-click="setTouched('eventChose')"
+                    ng-click="selectEventTouched('eventChose')"
                     >
                   </select>
                 </div>
               </div>
-              <div class="col-md-12">
-                <span class="col-md-3">告警分析员</span>
 
-                <div class="col-md-9">
-                  <input name="author" type="text" class="form-control" ng-model="author">
-                </div>
-              </div>
               <div class="col-md-12">
                 <span class="col-md-3">事件描述</span>
-
                 <div class="col-md-9">
-                  <input name="description" type="text" class="form-control" ng-model="description">
+                  <input name="description" unselectable="on" type="text" class="form-control" ng-model="description"/>
                 </div>
               </div>
+
+              <div class="col-md-12">
+                <span class="col-md-3">事件类型</span>
+                <div class="col-md-9">
+                  <input name="eventType" unselectable="on" type="text" class="form-control" ng-model="eventType"/>
+                </div>
+              </div>
+
+              <div class="col-md-12">
+                <span class="col-md-3">事件等级</span>
+                <div class="col-md-9">
+                  <input name="eventLevel"  unselectable="on" type="text" class="form-control" ng-model="eventLevel"/>
+                </div>
+              </div>
+
+              <div class="col-md-12">
+                <span class="col-md-3">处置建议</span>
+                <div class="col-md-9">
+                  <input name="eventDisp" type="text" class="form-control" ng-model="eventDisp"/>
+                </div>
+              </div>
+
+              <div class="col-md-12">
+                <span class="col-md-3">告警分析员</span>
+                <div class="col-md-9">
+                  <input name="author" unselectable="on" type="text" class="form-control" ng-model="author">
+                </div>
+              </div>
+
               <div class="col-md-12">
                 <span class="col-md-3">告警/日志概要信息 : </span>
                 <div class="col-md-9">&nbsp;&nbsp;&nbsp;&nbsp;</div>

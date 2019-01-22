@@ -612,6 +612,9 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   $scope.selectedData = null;
   $scope.description = null;
   $scope.author = null;
+  $scope.eventType = null;
+  $scope.eventDisp = null;
+  $scope.eventLevel = null;
 
   $scope.getChosen = function () {
     let rowsChosen = [];
@@ -635,7 +638,7 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
     $scope.selectedData = $scope.getChosen();
     if ($scope.selectedData.length > 0) {
       $scope.getAllEvent();
-      $scope.addToEventForm.$setPristine();
+      //$scope.addToEventForm.$setPristine();
       //console.log("discover.js "+ $scope.selectedData);
       $('select[name="eventChose"]').removeClass('ng-touched').addClass('ng-untouched');
       modalShow('#modal');
@@ -645,7 +648,8 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   }
 
   $scope.getAllEvent = function () {
-    $http.get('/event/list')
+    //$http.get('/event/list')
+    $http.get('/kibana/event/list')
       .success(function (data) {
         console.log(data)
         $scope.events = data.data;
@@ -654,9 +658,11 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   };
 
   function getEventById(id){
-    for(var i = 0; i< $scope.events.length; i++){
-      if($scope.events[i].id == id){
-        return $scope.events[i];
+    if($scope.events) {
+      for (var i = 0; i < $scope.events.length; i++) {
+        if ($scope.events[i].id == id) {
+          return $scope.events[i];
+        }
       }
     }
     return null;
@@ -666,6 +672,22 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   $scope.setTouched = function (name) {
     if ($('select[name="' + name + '"]').hasClass('ng-untouched')) {
       $('select[name="' + name + '"]').removeClass('ng-untouched').addClass('ng-touched');
+    }
+  }
+
+  $scope.selectEventTouched = function (name) {
+    if ($('select[name="' + name + '"]').hasClass('ng-untouched')) {
+      $('select[name="' + name + '"]').removeClass('ng-untouched').addClass('ng-touched');
+    }
+    var id = $('#eventChose option:selected').val().replace(new RegExp("string:"), "");
+    if(id){
+      console.log(id);
+      var event = getEventById(id);
+      $scope.author = event.author;
+      $scope.description = event.description;
+      $scope.eventType = event.eventType;
+      $scope.eventDisp = event.event_disp;
+      $scope.eventLevel = event.level;
     }
   }
 
@@ -685,6 +707,9 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       event.author = $scope.author;
       event.originalInfo =  JSON.stringify(jsonArr);
       event.description = $scope.description;
+      event.eventType = $scope.eventType;
+      event.event_disp =  $scope.eventDisp;
+      event.level = $scope.eventType;
       return event;
     }else return null;
   }
@@ -697,7 +722,8 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       notify.error('请选择事件');
     } else {
       console.log("update in discover request" + JSON.stringify(senData));
-      $http.put('/event/' + senData.id, JSON.stringify(senData))
+      //$http.put('/event/' + senData.id, JSON.stringify(senData))
+      $http.put('/kibana/event/' + senData.id, JSON.stringify(senData))
         .success(function (data) {
           if (data.hasOwnProperty('success') && data.success === true) {
             notify.info('添加成功');
