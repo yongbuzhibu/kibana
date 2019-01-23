@@ -1,4 +1,4 @@
 {
-  "UI-WELCOME_MESSAGE": "Loading Kibana",
-  "UI-WELCOME_ERROR": "Kibana did not load properly. Check the server output for more information."
+  "UI-WELCOME_MESSAGE": "数据分析",
+  "UI-WELCOME_ERROR": "data analysis did not load properly. Check the server output for more information."
 }
