@@ -618,11 +618,23 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       for(var i = 0;i<len;i++){
         jsonArr.push($scope.selectedData[i]._source);
       }
-      var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(JSON.stringify(jsonArr));
-      $(window).attr('location',uri);
+      downloadResponseAsJSONFile(jsonArr);
     } else {
       notify.error('未选择任何数据');
     }
+  }
+
+  function downloadResponseAsJSONFile(jsonArr) {
+    var filename = "data.json";
+    var uri = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(jsonArr));
+    var downloadContainer = angular.element('<div data-tap-disabled="true"><a></a></div>');
+    var downloadLink = angular.element(downloadContainer.children()[0]);
+    downloadLink.attr('href', uri);
+    downloadLink.attr('download', filename);
+    downloadLink.attr('target', '_blank');
+    $(document).find('body').append(downloadContainer);
+    downloadLink[0].click();
+    downloadLink.remove();
   }
 
   // secondary development
