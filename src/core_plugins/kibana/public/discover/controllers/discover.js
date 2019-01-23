@@ -606,6 +606,24 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   }
 
   // add by matthew2019-01-07
+  /*
+  * export data with csv
+  * */
+
+  $scope.exportCSVData = function () {
+    $scope.selectedData = $scope.getChosen();
+    var jsonArr = [];
+    if ($scope.selectedData.length > 0) {
+      var len = $scope.selectedData.length;
+      for(var i = 0;i<len;i++){
+        jsonArr.push($scope.selectedData[i]._source);
+      }
+      var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(JSON.stringify(jsonArr));
+      $(window).attr('location',uri);
+    } else {
+      notify.error('未选择任何数据');
+    }
+  }
 
   // secondary development
   // add to analyticPool and event activities
