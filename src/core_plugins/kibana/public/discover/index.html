@@ -865,14 +865,30 @@
               <div class="col-md-12">
                 <span class="col-md-3">事件类型</span>
                 <div class="col-md-9">
-                  <input name="eventType" unselectable="on" type="text" class="form-control" ng-model="eventType"/>
+                  <select id="eventType" style="overflow:scroll" class="form-control">
+                    <option value="web扫描">web扫描</option>
+                    <option value="web攻击">web攻击</option>
+                    <option value="web注入">web注入</option>
+                    <option value="xss攻击">xss攻击</option>
+                    <option value="sql注入">sql注入</option>
+                    <option value="漏洞入侵">漏洞入侵</option>
+                    <option value="主机入侵">主机入侵</option>
+                    <option value="暴力破解">暴力破解</option>
+                    <option value="数据泄露">数据泄露</option>
+                    <option value="C&C连接">C&C连接</option>
+                    <option value="访问恶意域名">访问恶意域名</option>
+                  </select>
                 </div>
               </div>
 
               <div class="col-md-12">
                 <span class="col-md-3">事件等级</span>
                 <div class="col-md-9">
-                  <input name="eventLevel"  unselectable="on" type="text" class="form-control" ng-model="eventLevel"/>
+                  <select id="eventLevel" style="overflow:scroll" class="form-control" >
+                    <option value="高级">高级</option>
+                    <option value="中级">中级</option>
+                    <option value="低级">低级</option>
+                  </select>
                 </div>
               </div>
 

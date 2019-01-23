@@ -612,9 +612,7 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   $scope.selectedData = null;
   $scope.description = null;
   $scope.author = null;
-  $scope.eventType = null;
   $scope.eventDisp = null;
-  $scope.eventLevel = null;
 
   $scope.getChosen = function () {
     let rowsChosen = [];
@@ -685,9 +683,10 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       var event = getEventById(id);
       $scope.author = event.author;
       $scope.description = event.description;
-      $scope.eventType = event.eventType;
       $scope.eventDisp = event.event_disp;
-      $scope.eventLevel = event.level;
+      //todo there have a bug,which cannot selected
+      $("#eventType").find("\"option:contains('"+event.eventType+"')\"").attr("selected",true);
+      $("#eventLevel").find("\"option:contains('"+event.level+"')\"").attr("selected",true);
     }
   }
 
@@ -707,9 +706,10 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       event.author = $scope.author;
       event.originalInfo =  JSON.stringify(jsonArr);
       event.description = $scope.description;
-      event.eventType = $scope.eventType;
+      event.eventType =$('#eventType option:selected').attr('value');
+
       event.event_disp =  $scope.eventDisp;
-      event.level = $scope.eventType;
+      event.level = $('#eventLevel option:selected').attr('value');
       return event;
     }else return null;
   }
