@@ -93,7 +93,11 @@
         </div>
 
         <div class="btn-event-group" style="float:right;margin-top:10px;margin-right:20px;">
-          <a class="btn btn-info btn-large btn-soc" ng-click="showAddToEvent()">添加到事件</a>
+          <a class="btn btn-info btn-large btn-soc" ng-click="showAddToEvent('new')">添加到新事件</a>
+        </div>
+
+        <div class="btn-event-group" style="float:right;margin-top:10px;margin-right:20px;">
+          <a class="btn btn-info btn-large btn-soc" ng-click="showAddToEvent('edit')">添加到事件</a>
         </div>
       </div>
 
@@ -190,9 +194,9 @@
             </div>
 
             <div class="form-group modal-body row col-md-12">
-              <div class="col-md-12">
-                <span class="col-md-3" style="float: left">选择事件<span style="color:red float: left;">*</span></span>
 
+              <div class="col-md-12" id="editEventDiv">
+                <span class="col-md-3" style="float: left">选择事件<span style="color:red float: left;">*</span></span>
                 <div class="col-md-9">
                   <select
                     name="eventChose"
@@ -204,6 +208,14 @@
                     ng-click="selectEventTouched('eventChose')"
                     >
                   </select>
+                </div>
+              </div>
+
+              <div class="col-md-12" id="newEventDiv">
+                <span class="col-md-3" style="float: left">事件名称<span style="color:red float: left;">*</span></span>
+
+                <div class="col-md-9">
+                  <input name="eventName" unselectable="on" type="text" class="form-control" ng-model="eventName"/>
                 </div>
               </div>
 
@@ -282,10 +294,10 @@
                       <td data-title="目的端口" ng-if="x._id"> 36553</td>
                       <td data-title="测试字段eventName" ng-if="x._source.eventName">{{ x._source.eventName }}</td>
 
-                      <!--<td data-title="源IP" ng-if="x._source.src_ip"> {{ x._source.src_ip }}</td>-->
-                      <!--<td data-title="源端口" ng-if="x._source.src_port"> {{ x._source.src_port }}</td>-->
-                      <!--<td data-title="目的IP" ng-if="x._source.dst_ip"> {{ x._source.dst_ip }}</td>-->
-                      <!--<td data-title="目的端口" ng-if="x._source.dst_port"> {{ x._source.dst_port }}</td>-->
+                      <!--<td data-title="源IP"> {{ x._source.src_ip }}</td>-->
+                      <!--<td data-title="源端口"> {{ x._source.src_port }}</td>-->
+                      <!--<td data-title="目的IP"> {{ x._source.dst_ip }}</td>-->
+                      <!--<td data-title="目的端口"> {{ x._source.dst_port }}</td>-->
                       <!--<td data-title="告警数据" ng-if="x._source.alarm_data">{{ x._source.alarm_data }}</td>-->
                     </tr>
                   </table>

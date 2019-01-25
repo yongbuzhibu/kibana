@@ -609,6 +609,20 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
   /*
   * export data with csv
   * */
+  $scope.selectedData = null;
+
+  $scope.getChosen = function () {
+    let rowsChosen = [];
+    _.forEach($scope.rows, function (row) {
+      if (row.hasOwnProperty('chosen') && row.chosen === true) {
+        let json = row;
+        console.log(json)
+        rowsChosen.push(json);
+      }
+    });
+    $scope.selectedData = rowsChosen;
+    return rowsChosen;
+  }
 
   $scope.exportCSVData = function () {
     $scope.selectedData = $scope.getChosen();
@@ -639,44 +653,45 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
 
   // secondary development
   // add to analyticPool and event activities
-  $scope.selectedData = null;
+
+  $scope.eventName = null;
   $scope.description = null;
   $scope.author = null;
   $scope.eventDisp = null;
+  $scope.sendType = null;
 
-  $scope.getChosen = function () {
-    let rowsChosen = [];
-    _.forEach($scope.rows, function (row) {
-      if (row.hasOwnProperty('chosen') && row.chosen === true) {
-        let json = row;
-        console.log(json)
-        rowsChosen.push(json);
-      }
-    });
-    $scope.selectedData = rowsChosen;
-    return rowsChosen;
-  }
+  var SEND_TYPE_EDIT = "edit";
+  var SEND_TYPE_NEW = "new";
 
-  function modalShow(selector) {
-    $(selector).modal('show');
-    $('.modal-backdrop').appendTo('#soc-modals');
-  };
-
-  $scope.showAddToEvent = function () {
+  $scope.showAddToEvent = function (type) {
     $scope.selectedData = $scope.getChosen();
     if ($scope.selectedData.length > 0) {
-      $scope.getAllEvent();
-      //$scope.addToEventForm.$setPristine();
-      //console.log("discover.js "+ $scope.selectedData);
-      $('select[name="eventChose"]').removeClass('ng-touched').addClass('ng-untouched');
-      modalShow('#modal');
+
+      $scope.eventName = null;
+      $scope.description = null;
+      $scope.author = null;
+      $scope.eventDisp = null;
+
+      if (type == SEND_TYPE_EDIT){
+        $scope.sendType = SEND_TYPE_EDIT;
+        $("#editEventDiv").show();
+        $("#newEventDiv").hide();
+        $scope.getAllEvent();
+        $('select[name="eventChose"]').removeClass('ng-touched').addClass('ng-untouched');
+      }else{
+        $scope.sendType = SEND_TYPE_NEW;
+        $("#editEventDiv").hide();
+        $("#newEventDiv").show();
+      }
+      $("#modal").modal('show');
+      $('.modal-backdrop').appendTo('#soc-modals');
     } else {
       notify.error('未选择任何数据');
     }
   }
 
   $scope.getAllEvent = function () {
-    //$http.get('/event/list')
+  //$http.get('/event/list')
     $http.get('/kibana/event/list')
       .success(function (data) {
         console.log(data)
@@ -684,6 +699,97 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
         $scope.addToEventForm.$setPristine();
       });
   };
+
+  $scope.sendToEvent = function () {
+    if($scope.sendType == SEND_TYPE_EDIT) {
+      var senData = getEditSentData();
+      if (!senData) {
+        notify.error('请选择事件');
+      } else {
+        console.log("update in discover request" + JSON.stringify(senData));
+        //$http.put('/event/' + senData.id, JSON.stringify(senData))
+        $http.put('/kibana/event/' + senData.id, JSON.stringify(senData))
+          .success(function (data) {
+            if (data.hasOwnProperty('success') && data.success === true) {
+              notify.info('添加成功');
+              $('#modal').modal('hide');
+              //$scope.setAllChosenFalse();
+            } else if (data.error && data.error === 401) {
+              notify.error('未登录或登陆状态已过期,请重新登陆平台');
+            } else {
+              notify.error('添加失败');
+            }
+          })
+          .error(function () {
+            notify.error('添加失败');
+          });
+      }
+    }else{
+      var senData = getNewSentData();
+      console.log("update in discover request" + JSON.stringify(senData));
+      //$http.post('/event/' + senData.id, JSON.stringify(senData))
+      $http.post('/kibana/event', JSON.stringify(senData))
+        .success(function (data) {
+          if (data.hasOwnProperty('success') && data.success === true) {
+            notify.info('添加成功');
+            $('#modal').modal('hide');
+          } else if (data.error && data.error === 401) {
+            notify.error('未登录或登陆状态已过期,请重新登陆平台');
+          } else {
+            notify.error('添加失败');
+          }
+        })
+        .error(function () {
+          notify.error('添加失败');
+        });
+    }
+  }
+
+  var getEditSentData = function () {
+    var id = $('#eventChose option:selected').val().replace(new RegExp("string:"), "");
+    if(id) {
+      let jsonArr = new Array();
+      let selectDataTmp = $scope.selectedData = $scope.getChosen();
+      for(var i = 0;i<$scope.selectedData.length;i++){
+        let jsonTmp = new Object;
+        jsonTmp._id = selectDataTmp[i]._id;
+        jsonTmp._type = selectDataTmp[i]._type;
+        jsonTmp._index = selectDataTmp[i]._index;
+        jsonArr.push(jsonTmp);
+      }
+      var event = getEventById(id);
+      event.author = $scope.author;
+      event.originalInfo =  JSON.stringify(jsonArr);
+      event.description = $scope.description;
+      event.eventType =$('#eventType option:selected').attr('value');
+
+      event.event_disp =  $scope.eventDisp;
+      event.level = $('#eventLevel option:selected').attr('value');
+      return event;
+    }else return null;
+  }
+
+  var getNewSentData = function () {
+      let jsonArr = new Array();
+      let selectDataTmp = $scope.selectedData = $scope.getChosen();
+      for(var i = 0;i<$scope.selectedData.length;i++){
+        let jsonTmp = new Object;
+        jsonTmp._id = selectDataTmp[i]._id;
+        jsonTmp._type = selectDataTmp[i]._type;
+        jsonTmp._index = selectDataTmp[i]._index;
+        jsonArr.push(jsonTmp);
+      }
+      var event = {};
+      event.eventName = $scope.eventName;
+      event.author = $scope.author;
+      event.originalInfo =  JSON.stringify(jsonArr);
+      event.description = $scope.description;
+      event.eventType =$('#eventType option:selected').attr('value');
+
+      event.event_disp =  $scope.eventDisp;
+      event.level = $('#eventLevel option:selected').attr('value');
+      return event;
+  }
 
   function getEventById(id){
     if($scope.events) {
@@ -715,61 +821,11 @@ function discoverController($scope, config, courier, $route, $window, Notifier,
       $scope.description = event.description;
       $scope.eventDisp = event.event_disp;
       //todo there have a bug,which cannot selected
-      $("#eventType").find("\"option:contains('"+event.eventType+"')\"").attr("selected",true);
+      $("#eventType").find("option:contains('"+event.eventType+"')").attr("selected",true);
       $("#eventLevel").find("\"option:contains('"+event.level+"')\"").attr("selected",true);
     }
   }
 
-  var getSentData = function () {
-    var id = $('#eventChose option:selected').val().replace(new RegExp("string:"), "");
-    if(id) {
-      let jsonArr = new Array();
-      let selectDataTmp = $scope.selectedData = $scope.getChosen();
-      for(var i = 0;i<$scope.selectedData.length;i++){
-        let jsonTmp = new Object;
-        jsonTmp._id = selectDataTmp[i]._id;
-        jsonTmp._type = selectDataTmp[i]._type;
-        jsonTmp._index = selectDataTmp[i]._index;
-        jsonArr.push(jsonTmp);
-      }
-      var event = getEventById(id);
-      event.author = $scope.author;
-      event.originalInfo =  JSON.stringify(jsonArr);
-      event.description = $scope.description;
-      event.eventType =$('#eventType option:selected').attr('value');
-
-      event.event_disp =  $scope.eventDisp;
-      event.level = $('#eventLevel option:selected').attr('value');
-      return event;
-    }else return null;
-  }
-
-
-  $scope.sendToEvent = function () {
-    var senData = getSentData();
-    //delete senData['$$hashKey'];
-    if (!senData) {
-      notify.error('请选择事件');
-    } else {
-      console.log("update in discover request" + JSON.stringify(senData));
-      //$http.put('/event/' + senData.id, JSON.stringify(senData))
-      $http.put('/kibana/event/' + senData.id, JSON.stringify(senData))
-        .success(function (data) {
-          if (data.hasOwnProperty('success') && data.success === true) {
-            notify.info('添加成功');
-            $('#modal').modal('hide');
-            //$scope.setAllChosenFalse();
-          } else if (data.error && data.error === 401) {
-            notify.error('未登录或登陆状态已过期,请重新登陆平台');
-          } else {
-            notify.error('添加失败');
-          }
-        })
-        .error(function () {
-          notify.error('添加失败');
-        });
-    }
-    }
-
   init();
 }
+

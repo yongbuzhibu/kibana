@@ -191,7 +191,7 @@ module.exports = async function (kbnServer, server, config) {
         //console.log(data);
         response(err, data, reply);
       });
-  }
+    }
   });
 
   server.route({
@@ -206,8 +206,22 @@ module.exports = async function (kbnServer, server, config) {
         //console.log(data);
         response(err, data, reply);
       });
-  }
+    }
   });
 
+  server.route({
+    method: 'POST',
+    path: '/event',
+    handler: async function (request, reply) {
+    request2.post(config.get('bdsa.eventAdd'))
+      .send(request.payload)
+      .set('Cookie', 'token=' + request.state.token)
+      .end(function (err, data) {
+        console.log("get event lists with restUri : " + config.get("bdsa.eventAdd"));
+        //console.log(data);
+        response(err, data, reply);
+      });
+    }
+  });
   return kbnServer.mixin(xsrfMixin);
 };
